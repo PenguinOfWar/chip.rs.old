@@ -1,4 +1,4 @@
-name: "Build (Mac OS Latest)"
+name: "Build (Ubuntu Latest)"
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
