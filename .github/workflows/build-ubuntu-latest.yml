@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install pkg-config
+      run: brew install pkg-config
     - name: Install sdl2
       run: brew install sdl2
     - name: Install sdl2_ttf
