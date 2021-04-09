@@ -15,14 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install pkg-config
-      run: brew install pkg-config
-    - name: Install sdl2
-      run: brew install sdl2
-    - name: Install sdl2_ttf
-      run: brew install sdl2_ttf
-    - name: Install sdl2_gfx
-      run: brew install sdl2_gfx
+    - name: Install packages
+      run: sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev libsdl2-gfx-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
