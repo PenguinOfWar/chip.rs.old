@@ -1,6 +1,12 @@
 # chip.rs
 Video game emulation and hardware drivers.
 
+## Instructions
+
+1. `git clone https://github.com/PenguinOfWar/chip.rs.git`
+2. `cd chip.rs`
+3. `./target/release/chip.rs`
+
 ## Development Libraries
 To compile this project locally and check it out for yourself you will need to install the following libraries.
 
