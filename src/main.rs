@@ -26,9 +26,6 @@ use sdl2::render::{Canvas, TextureQuery};
 use sdl2::ttf;
 use sdl2::video::Window;
 
-use rusttype::gpu_cache::Cache;
-use rusttype::{point, vector, Font, PositionedGlyph, Rect as RustTypeRect, Scale};
-
 static SCREEN_WIDTH: u32 = 800;
 static SCREEN_HEIGHT: u32 = 600;
 
@@ -59,21 +56,12 @@ fn main() -> Result<(), String> {
     log::info!("Logger: {:?}", true);
 
     // configure video
+
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
-    // gpu cache!
-    // define the cache bounds like we learned
-    let (cache_width, cache_height) = (SCREEN_WIDTH, SCREEN_HEIGHT);
-    // create the cache
-    let mut cache: Cache<'static> = Cache::builder()
-        .dimensions(cache_width, cache_height)
-        .build();
-
-    log::info!("cache width: {:?}", cache_width);
-    log::info!("cache height: {:?}", cache_height);
-
     // ttf context
+
     let ttf_context = ttf::init().map_err(|e| e.to_string())?;
 
     // Load a font
@@ -141,12 +129,19 @@ fn main() -> Result<(), String> {
 
         // change the color of our drawing with a gold-color ...
         canvas.set_draw_color(Color::RGB(255, 210, 0));
-        // A draw a rectangle which almost fills our window with it !
-        let rectangle: Rect = Rect::new(10, 10, 400, 200);
+
+        // draw a rectangle
+        let rectangle: Rect =
+            get_centered_rect(400, 200, SCREEN_WIDTH - padding, SCREEN_HEIGHT - padding);
+        log::info!("rect: {:?}", rectangle);
         canvas.fill_rect(rectangle).unwrap();
 
-        let square: Rect = Rect::new(250, 250, 200, 200);
+        // change color
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        let square: Rect = get_centered_rect(250, 250, SCREEN_WIDTH - padding, SCREEN_HEIGHT - padding);
         canvas.fill_rect(square).unwrap();
+
+        log::info!("Target: {:?}", target);
 
         canvas.copy(&texture, None, Some(target))?;
 
