@@ -1,5 +1,5 @@
 // define our main mod function
-// i might be doing something wrong but all the code samples for 
+// i might be doing something wrong but all the code samples for
 // lib style exports seem to suggest allowing dead code  ¯\_(ツ)_/¯
 #[allow(dead_code)]
 pub fn main() {

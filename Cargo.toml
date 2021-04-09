@@ -1,5 +1,5 @@
 [package]
-name = "chip"
+name = "chiprs"
 version = "0.1.0"
 authors = ["Darryl Walker <darryljwalker@me.com>"]
 edition = "2018"
