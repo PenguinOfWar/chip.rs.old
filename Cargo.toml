@@ -3,6 +3,8 @@ name = "chip"
 version = "0.1.0"
 authors = ["Darryl Walker <darryljwalker@me.com>"]
 edition = "2018"
+features = ["gfx"]
+default-features = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,4 +12,9 @@ edition = "2018"
 log = "0.4.14"
 env_logger = "0.8.3"
 chrono = "0.4.19"
-sdl2 = "0.34.4"
+
+# this is a cool way of subscribing to subdeps
+[dependencies.sdl2]
+version = "0.34.4"
+default-features = false
+features = ["gfx"]
