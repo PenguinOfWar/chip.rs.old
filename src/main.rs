@@ -1,10 +1,15 @@
 // with thanks to:
 // https://sunjay.dev/learn-game-dev/opening-a-window.html
 // https://docs.rs/sdl2/0.30.0/sdl2/render/struct.Canvas.html
+// https://docs.rs/sdl2/0.5.0/src/sdl2/.cargo/registry/src/github.com-1ecc6299db9ec823/sdl2-0.5.0/src/sdl2/rect.rs.html#83-237
+// https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/ttf-demo.rs
+// https://github.com/redox-os/rusttype/blob/master/dev/examples/gpu_cache.rs
 
 mod chip;
 
 use std::io::Write;
+use std::path::Path;
+use std::thread::sleep;
 use std::time::Duration;
 
 use chrono::Local;
@@ -17,16 +22,22 @@ use sdl2::gfx::framerate::FPSManager;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::Canvas;
+use sdl2::render::{Canvas, TextureQuery};
+use sdl2::ttf;
 use sdl2::video::Window;
 
-// const CHIP8_WIDTH: usize = 64;
-// const CHIP8_HEIGHT: usize = 32;
-// const CHIP8_RAM: usize = 4096;
+use rusttype::gpu_cache::Cache;
+use rusttype::{point, vector, Font, PositionedGlyph, Rect as RustTypeRect, Scale};
 
-// const SCALE_FACTOR: u32 = 20;
-// const SCREEN_WIDTH: u32 = (CHIP8_WIDTH as u32) * SCALE_FACTOR;
-// const SCREEN_HEIGHT: u32 = (CHIP8_HEIGHT as u32) * SCALE_FACTOR;
+static SCREEN_WIDTH: u32 = 800;
+static SCREEN_HEIGHT: u32 = 600;
+
+// macro rules seem cool
+macro_rules! rect(
+    ($x:expr, $y:expr, $w:expr, $h:expr) => (
+        Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
+    )
+);
 
 fn main() -> Result<(), String> {
     // set up our logger prefix
@@ -48,13 +59,34 @@ fn main() -> Result<(), String> {
     log::info!("Logger: {:?}", true);
 
     // configure video
-
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
+    // gpu cache!
+    // define the cache bounds like we learned
+    let (cache_width, cache_height) = (SCREEN_WIDTH, SCREEN_HEIGHT);
+    // create the cache
+    let mut cache: Cache<'static> = Cache::builder()
+        .dimensions(cache_width, cache_height)
+        .build();
+
+    log::info!("cache width: {:?}", cache_width);
+    log::info!("cache height: {:?}", cache_height);
+
+    // ttf context
+    let ttf_context = ttf::init().map_err(|e| e.to_string())?;
+
+    // Load a font
+    let font_path: &Path = Path::new("./src/assets/fonts/MobileFont.ttf");
+    log::info!("path: {:?}", font_path);
+
+    let mut font = ttf_context.load_font(font_path, 128)?;
+    font.set_style(sdl2::ttf::FontStyle::NORMAL);
+
     let window = video_subsystem
-        .window("rust-sdl2 demo", 800, 600)
+        .window("rust-sdl2 demo", SCREEN_WIDTH, SCREEN_HEIGHT)
         .position_centered()
+        .opengl()
         .build()
         .unwrap();
 
@@ -68,8 +100,6 @@ fn main() -> Result<(), String> {
     let mut i = 0;
 
     // track frames
-    // this syntax is weird but i guess i kind of like it
-
     let mut fpsmanager: FPSManager = FPSManager::new();
     fpsmanager.set_framerate(60u32).expect("Framerate panic");
 
@@ -81,7 +111,33 @@ fn main() -> Result<(), String> {
         // change the colour so we know it's working
         i = (i + 1) % 255;
         canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
+
+        // render a surface, and convert it to a texture bound to the canvas
+        let surface = font
+            .render("Hello Rust!")
+            .blended(Color::RGBA(255, 0, 0, 255))
+            .map_err(|e| e.to_string())?;
+
+        let texture_creator = canvas.texture_creator();
+        let texture = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| e.to_string())?;
+
+        // clear the stage
         canvas.clear();
+
+        // texture query
+
+        let TextureQuery { width, height, .. } = texture.query();
+
+        // If the example text is too big for the screen, downscale it (and center irregardless)
+        let padding = 64;
+        let target = get_centered_rect(
+            width,
+            height,
+            SCREEN_WIDTH - padding,
+            SCREEN_HEIGHT - padding,
+        );
 
         // change the color of our drawing with a gold-color ...
         canvas.set_draw_color(Color::RGB(255, 210, 0));
@@ -91,6 +147,8 @@ fn main() -> Result<(), String> {
 
         let square: Rect = Rect::new(250, 250, 200, 200);
         canvas.fill_rect(square).unwrap();
+
+        canvas.copy(&texture, None, Some(target))?;
 
         for event in event_pump.poll_iter() {
             match event {
@@ -113,8 +171,32 @@ fn main() -> Result<(), String> {
         canvas.present();
 
         // sleep until the next frame
-        ::std::thread::sleep(Duration::from_millis(1000 / 60));
+        sleep(Duration::from_millis(1000 / 60));
     }
 
     Ok(())
+}
+
+// Scale fonts to a reasonable size when they're too big (though they might look less smooth)
+fn get_centered_rect(rect_width: u32, rect_height: u32, cons_width: u32, cons_height: u32) -> Rect {
+    let wr = rect_width as f32 / cons_width as f32;
+    let hr = rect_height as f32 / cons_height as f32;
+
+    let (w, h) = if wr > 1f32 || hr > 1f32 {
+        if wr > hr {
+            println!("Scaling down! The text will look worse!");
+            let h = (rect_height as f32 / wr) as i32;
+            (cons_width as i32, h)
+        } else {
+            println!("Scaling down! The text will look worse!");
+            let w = (rect_width as f32 / hr) as i32;
+            (w, cons_height as i32)
+        }
+    } else {
+        (rect_width as i32, rect_height as i32)
+    };
+
+    let cx = (SCREEN_WIDTH as i32 - w) / 2;
+    let cy = (SCREEN_HEIGHT as i32 - h) / 2;
+    rect!(cx, cy, w, h)
 }
