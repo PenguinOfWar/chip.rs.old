@@ -1,0 +1,28 @@
+name: "Build (Mac OS Latest)"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install sdl2
+      run: brew install sdl2
+    - name: Install sdl2_ttf
+      run: brew install sdl2_ttf
+    - name: Install sdl2_gfx
+      run: brew install sdl2_gfx
+    - name: Build
+      run: cargo build --verbose
+    - name: Run tests
+      run: cargo test --verbose
