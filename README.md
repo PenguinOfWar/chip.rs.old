@@ -6,6 +6,8 @@ Video game emulation and hardware drivers.
 
 ## Instructions
 
+If you just want to try it out complete the following steps.
+
 1. `git clone https://github.com/PenguinOfWar/chip.rs.git`
 2. `cd chip.rs`
 3. `./target/release/chip.rs`
