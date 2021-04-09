@@ -1,4 +1,4 @@
-# chip.rs
+# CHIP.rs
 Video game emulation and hardware drivers.
 
 ## Instructions
@@ -6,6 +6,8 @@ Video game emulation and hardware drivers.
 1. `git clone https://github.com/PenguinOfWar/chip.rs.git`
 2. `cd chip.rs`
 3. `./target/release/chip.rs`
+
+Press `Esc` key to eject or `Ctrl + c` the terminal process.
 
 ## Development Libraries
 To compile this project locally and check it out for yourself you will need to install the following libraries.
@@ -33,7 +35,6 @@ SDL2 >= 2.0.8 is required.
 
 ## Run Locally
 
-Press `Esc` key to eject or `Ctrl + c` the terminal process.
 
 ```
 % cargo run
