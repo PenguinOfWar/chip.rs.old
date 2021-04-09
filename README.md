@@ -1,4 +1,7 @@
 # CHIP.rs
+
+[![Build (Ubuntu Latest)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-ubuntu-latest.yml/badge.svg)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-ubuntu-latest.yml)
+
 Video game emulation and hardware drivers.
 
 ## Instructions

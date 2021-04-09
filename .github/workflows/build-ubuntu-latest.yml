@@ -1,4 +1,4 @@
-name: "Build (Mac OS Latest)"
+name: "Build (Ubuntu Latest)"
 
 on:
   push:
@@ -11,17 +11,14 @@ env:
 
 jobs:
   build:
-
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install sdl2
-      run: brew install sdl2
-    - name: Install sdl2_ttf
-      run: brew install sdl2_ttf
-    - name: Install sdl2_gfx
-      run: brew install sdl2_gfx
+    - name: Update package database
+      run: sudo apt-get update
+    - name: Install packages
+      run: sudo apt-get install -y libsdl2-dev libsdl2-ttf-dev libsdl2-gfx-dev
     - name: Build
       run: cargo build --verbose
     - name: Run tests
