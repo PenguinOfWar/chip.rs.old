@@ -1,6 +1,6 @@
 # CHIP.rs
 
-[![Build (Ubuntu Latest)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-ubuntu-latest.yml/badge.svg)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-ubuntu-latest.yml)
+[![Build (Ubuntu Latest)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-ubuntu-latest.yml/badge.svg)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-ubuntu-latest.yml) [![Build (MacOS Self Hosted)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-macos-self.yml/badge.svg)](https://github.com/PenguinOfWar/chip.rs/actions/workflows/build-macos-self.yml)
 
 Video game emulation and hardware drivers.
 
