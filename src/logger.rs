@@ -22,3 +22,14 @@ pub fn main() -> Result<(), String> {
     .init();
   Ok(())
 }
+// tests below
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn logger() {
+    super::main().expect("logger panic");
+    log::info!("Logger: {:?}", true);
+    assert_eq!(2 + 2, 4);
+  }
+}
