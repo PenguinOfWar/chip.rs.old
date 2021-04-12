@@ -5,8 +5,8 @@
 // https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/ttf-demo.rs
 // https://github.com/redox-os/rusttype/blob/master/dev/examples/gpu_cache.rs
 
-pub mod logger;
 pub mod chip8;
+pub mod logger;
 
 use std::path::Path;
 use std::thread::sleep;
@@ -74,6 +74,7 @@ pub fn main() -> Result<(), String> {
     'running: loop {
         // log fps
         let fps: i32 = fpsmanager.get_framerate();
+        let title: String = format!("Hello Rust! FPS: {}", fps);
         log::info!("FPS: {:?}", fps);
 
         // change the colour so we know it's working
@@ -82,7 +83,7 @@ pub fn main() -> Result<(), String> {
 
         // render a surface, and convert it to a texture bound to the canvas
         let surface = font
-            .render("Hello Rust!")
+            .render(title.as_str())
             .blended(Color::RGBA(255, 0, 0, 255))
             .map_err(|e| e.to_string())?;
 
