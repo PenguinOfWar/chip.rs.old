@@ -24,6 +24,7 @@ use sdl2::video::Window;
 
 static SCREEN_WIDTH: u32 = 800;
 static SCREEN_HEIGHT: u32 = 600;
+static PADDING: u32 = 64;
 
 // macro rules seem cool
 macro_rules! rect(
@@ -100,12 +101,11 @@ pub fn main() -> Result<(), String> {
         let TextureQuery { width, height, .. } = texture.query();
 
         // If the example text is too big for the screen, downscale it (and center irregardless)
-        let padding = 64;
         let target = get_centered_rect(
             width,
             height,
-            SCREEN_WIDTH - padding,
-            SCREEN_HEIGHT - padding,
+            SCREEN_WIDTH - PADDING,
+            SCREEN_HEIGHT - PADDING,
         );
 
         // change the color of our drawing with a gold-color ...
@@ -113,14 +113,14 @@ pub fn main() -> Result<(), String> {
 
         // draw a rectangle
         let rectangle: Rect =
-            get_centered_rect(400, 200, SCREEN_WIDTH - padding, SCREEN_HEIGHT - padding);
+            get_centered_rect(400, 200, SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING);
         log::info!("rect: {:?}", rectangle);
         canvas.fill_rect(rectangle).unwrap();
 
         // change color
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         let square: Rect =
-            get_centered_rect(250, 250, SCREEN_WIDTH - padding, SCREEN_HEIGHT - padding);
+            get_centered_rect(250, 250, SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING);
         canvas.fill_rect(square).unwrap();
 
         log::info!("Target: {:?}", target);
@@ -155,7 +155,12 @@ pub fn main() -> Result<(), String> {
 }
 
 // Scale fonts to a reasonable size when they're too big (though they might look less smooth)
-fn get_centered_rect(rect_width: u32, rect_height: u32, cons_width: u32, cons_height: u32) -> Rect {
+pub fn get_centered_rect(
+    rect_width: u32,
+    rect_height: u32,
+    cons_width: u32,
+    cons_height: u32,
+) -> Rect {
     let wr = rect_width as f32 / cons_width as f32;
     let hr = rect_height as f32 / cons_height as f32;
 
@@ -176,4 +181,27 @@ fn get_centered_rect(rect_width: u32, rect_height: u32, cons_width: u32, cons_he
     let cx = (SCREEN_WIDTH as i32 - w) / 2;
     let cy = (SCREEN_HEIGHT as i32 - h) / 2;
     rect!(cx, cy, w, h)
+}
+
+// tests below
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_gets_centered_rect() {
+        let test_width: u32 = 400;
+        let test_height: u32 = 200;
+
+        let rectangle: super::Rect = super::get_centered_rect(
+            test_width,
+            test_height,
+            super::SCREEN_WIDTH - super::PADDING,
+            super::SCREEN_HEIGHT - super::PADDING,
+        );
+
+        assert_eq!(rectangle.x, 200);
+        assert_eq!(rectangle.y, 200);
+        assert_eq!(rectangle.w, test_width as i32);
+        assert_eq!(rectangle.h, test_height as i32);
+    }
 }
