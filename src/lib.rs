@@ -5,7 +5,7 @@
 // https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/ttf-demo.rs
 // https://github.com/redox-os/rusttype/blob/master/dev/examples/gpu_cache.rs
 
-pub mod chip8;
+pub mod drivers;
 pub mod logger;
 
 use std::path::Path;
@@ -70,19 +70,23 @@ pub fn main() -> Result<(), String> {
 
     // track frames
     let mut fpsmanager: FPSManager = FPSManager::new();
-    fpsmanager.set_framerate(60u32).expect("Framerate panic");
+    fpsmanager
+        .set_framerate(drivers::video::FRAMERATE)
+        .expect("Framerate panic");
 
     'running: loop {
         // log fps
         let fps: i32 = fpsmanager.get_framerate();
-        let title: String = format!("Hello Rust! FPS: {}", fps);
-        log::info!("FPS: {:?}", fps);
 
         // change the colour so we know it's working
         i = (i + 1) % 255;
         canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
 
+        // clear the stage
+        canvas.clear();
+
         // render a surface, and convert it to a texture bound to the canvas
+        let title: String = format!("Hello Rust! FPS: {}", fps);
         let surface = font
             .render(title.as_str())
             .blended(Color::RGBA(255, 0, 0, 255))
@@ -92,9 +96,6 @@ pub fn main() -> Result<(), String> {
         let texture = texture_creator
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
-
-        // clear the stage
-        canvas.clear();
 
         // texture query
 
@@ -114,7 +115,6 @@ pub fn main() -> Result<(), String> {
         // draw a rectangle
         let rectangle: Rect =
             get_centered_rect(400, 200, SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING);
-        log::info!("rect: {:?}", rectangle);
         canvas.fill_rect(rectangle).unwrap();
 
         // change color
@@ -123,9 +123,9 @@ pub fn main() -> Result<(), String> {
             get_centered_rect(250, 250, SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING);
         canvas.fill_rect(square).unwrap();
 
-        log::info!("Target: {:?}", target);
-
         canvas.copy(&texture, None, Some(target))?;
+
+        drivers::cpu::tick().expect("Panic ticking CPU");
 
         for event in event_pump.poll_iter() {
             match event {
@@ -134,9 +134,12 @@ pub fn main() -> Result<(), String> {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
+                    log::info!("Closing");
                     break 'running;
                 }
-                _ => {}
+                _ => {
+                    log::info!("General input");
+                }
             }
         }
         // Present the layers
@@ -147,8 +150,11 @@ pub fn main() -> Result<(), String> {
         // we want to render a new frame on the window.
         canvas.present();
 
+        // time between frames
+        let frame_time: u64 = (1000 / fps) as u64;
+
         // sleep until the next frame
-        sleep(Duration::from_millis(1000 / 60));
+        sleep(Duration::from_millis(frame_time));
     }
 
     Ok(())
@@ -166,11 +172,11 @@ pub fn get_centered_rect(
 
     let (w, h) = if wr > 1f32 || hr > 1f32 {
         if wr > hr {
-            println!("Scaling down! The text will look worse!");
+            // println!("Scaling down! The text will look worse!");
             let h = (rect_height as f32 / wr) as i32;
             (cons_width as i32, h)
         } else {
-            println!("Scaling down! The text will look worse!");
+            // println!("Scaling down! The text will look worse!");
             let w = (rect_width as f32 / hr) as i32;
             (w, cons_height as i32)
         }
@@ -181,6 +187,13 @@ pub fn get_centered_rect(
     let cx = (SCREEN_WIDTH as i32 - w) / 2;
     let cy = (SCREEN_HEIGHT as i32 - h) / 2;
     rect!(cx, cy, w, h)
+}
+
+pub fn games() -> Vec<&'static str> {
+    let games: Vec<&str> = vec![
+        "Invaders", "Brix", "Tetris", "Pong", "UFO", "IBM", "Missile", "Tank", "Maze",
+    ];
+    return games;
 }
 
 // tests below

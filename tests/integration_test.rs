@@ -1,7 +1,7 @@
 use chiprs;
 
 #[test]
-fn chip8_games() {
-  let games = chiprs::chip8::games();
+fn chip_games() {
+  let games = chiprs::games();
   assert_eq!(games.len(), 9);
 }
