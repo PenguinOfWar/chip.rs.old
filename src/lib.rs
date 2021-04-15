@@ -21,6 +21,8 @@ use sdl2::render::TextureQuery;
 
 use drivers::cpu::Cpu;
 use drivers::cpu::CpuContext;
+use drivers::video::Video;
+use drivers::video::VideoContext;
 
 static SCREEN_WIDTH: u32 = 800;
 static SCREEN_HEIGHT: u32 = 600;
@@ -41,20 +43,18 @@ pub fn main() -> Result<(), String> {
     let mut cpu: Cpu = CpuContext::new();
     log::info!("CPU: {:?}", cpu);
 
-    // make a change and see if it sticks
-
+    // start the cpu
     cpu = cpu.set_running(true);
 
     log::info!("CPU: {:?}", cpu);
 
     // configure video
-
-    let video_context: drivers::video::VideoContext =
-        drivers::video::init(SCREEN_WIDTH, SCREEN_HEIGHT).unwrap();
+    let video_context: Video = VideoContext::new(SCREEN_WIDTH, SCREEN_HEIGHT);
 
     let sdl_context = video_context.sdl_context;
     let mut canvas = video_context.canvas;
 
+    // pump it real good
     let mut event_pump = sdl_context.event_pump()?;
     let mut i = 0;
 
@@ -121,7 +121,7 @@ pub fn main() -> Result<(), String> {
 
         canvas.copy(&texture, None, Some(target))?;
 
-        drivers::cpu::tick().expect("Panic ticking CPU");
+        cpu = cpu.tick().expect("Panic while ticking CPU");
 
         for event in event_pump.poll_iter() {
             match event {
@@ -138,16 +138,22 @@ pub fn main() -> Result<(), String> {
                 }
             }
         }
-        // Present the layers
-        // However the canvas has not been updated to the window yet,
-        // everything has been processed to an internal buffer,
-        // but if we want our buffer to be displayed on the window,
-        // we need to call `present`. We need to call this everytime
-        // we want to render a new frame on the window.
-        canvas.present();
+
+        // There is no real benefit to this check yet other than debugging
+        if !cpu.working {
+            // Present the layers if the CPU has finished doing it's thang
+            // However the canvas has not been updated to the window yet,
+            // everything has been processed to an internal buffer,
+            // but if we want our buffer to be displayed on the window,
+            // we need to call `present`. We need to call this everytime
+            // we want to render a new frame on the window.
+            canvas.present();
+        } else {
+            log::info!("Waiting on CPU");
+        }
 
         // time between frames
-        let frame_time: u64 = (1000 / fps) as u64;
+        let frame_time: u64 = 1000 / fps as u64;
 
         // sleep until the next frame
         sleep(Duration::from_millis(frame_time));

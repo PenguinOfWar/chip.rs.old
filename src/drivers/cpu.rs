@@ -1,3 +1,5 @@
+// I think i get this now and its cool
+
 #[derive(Debug)]
 pub struct Cpu {
   pub working: bool,
@@ -7,6 +9,7 @@ pub struct Cpu {
 pub trait CpuContext {
   fn new() -> Self;
   fn set_running(self, running: bool) -> Self;
+  fn tick(self) -> Result<Cpu, String>;
 }
 
 impl CpuContext for Cpu {
@@ -20,16 +23,14 @@ impl CpuContext for Cpu {
     self.running = running;
     return self;
   }
-}
+  fn tick(mut self) -> Result<Cpu, String> {
+    self.working = true;
 
-pub fn init() -> Cpu {
-  CpuContext::new()
-}
+    // do stuff
+    log::info!("tick");
 
-pub fn tick() -> Result<(), String> {
-  Ok(render())
-}
+    self.working = false;
 
-fn render() {
-  log::info!("tick");
+    return Ok(self);
+  }
 }
