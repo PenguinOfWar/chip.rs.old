@@ -4,7 +4,7 @@ use sdl2::render::Canvas;
 use sdl2::ttf;
 use sdl2::video::Window;
 
-pub static FRAMERATE: u32 = 30;
+pub static FRAMERATE: u32 = 1;
 
 pub struct VideoContext {
   pub sdl_context: sdl2::Sdl,

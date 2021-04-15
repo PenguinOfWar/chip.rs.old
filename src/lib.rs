@@ -19,6 +19,9 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::TextureQuery;
 
+use drivers::cpu::Cpu;
+use drivers::cpu::CpuContext;
+
 static SCREEN_WIDTH: u32 = 800;
 static SCREEN_HEIGHT: u32 = 600;
 static PADDING: u32 = 64;
@@ -33,6 +36,17 @@ macro_rules! rect(
 pub fn main() -> Result<(), String> {
     logger::main().expect("panic bootstrapping logger");
 
+    // configure cpu
+
+    let mut cpu: Cpu = CpuContext::new();
+    log::info!("CPU: {:?}", cpu);
+
+    // make a change and see if it sticks
+
+    cpu = cpu.set_running(true);
+
+    log::info!("CPU: {:?}", cpu);
+
     // configure video
 
     let video_context: drivers::video::VideoContext =
@@ -43,6 +57,12 @@ pub fn main() -> Result<(), String> {
 
     let mut event_pump = sdl_context.event_pump()?;
     let mut i = 0;
+
+    // Load a font
+    let font_path: &Path = Path::new("./src/assets/fonts/MobileFont.ttf");
+
+    let mut font = video_context.ttf_context.load_font(font_path, 128)?;
+    font.set_style(sdl2::ttf::FontStyle::NORMAL);
 
     // track frames
     let mut fpsmanager: FPSManager = FPSManager::new();
@@ -60,13 +80,6 @@ pub fn main() -> Result<(), String> {
 
         // clear the stage
         canvas.clear();
-
-        // Load a font
-        let font_path: &Path = Path::new("./src/assets/fonts/MobileFont.ttf");
-        log::info!("path: {:?}", font_path);
-
-        let mut font = video_context.ttf_context.load_font(font_path, 128)?;
-        font.set_style(sdl2::ttf::FontStyle::NORMAL);
 
         // render a surface, and convert it to a texture bound to the canvas
         let title: String = format!("Hello Rust! FPS: {}", fps);
