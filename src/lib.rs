@@ -12,15 +12,12 @@ use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
-use sdl2;
 use sdl2::event::Event;
 use sdl2::gfx::framerate::FPSManager;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, TextureQuery};
-use sdl2::ttf;
-use sdl2::video::Window;
+use sdl2::render::TextureQuery;
 
 static SCREEN_WIDTH: u32 = 800;
 static SCREEN_HEIGHT: u32 = 600;
@@ -34,36 +31,15 @@ macro_rules! rect(
 );
 
 pub fn main() -> Result<(), String> {
-    logger::main().expect("panic bootstrapping");
+    logger::main().expect("panic bootstrapping logger");
 
     // configure video
 
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
+    let video_context: drivers::video::VideoContext =
+        drivers::video::init(SCREEN_WIDTH, SCREEN_HEIGHT).unwrap();
 
-    // ttf context
-
-    let ttf_context = ttf::init().map_err(|e| e.to_string())?;
-
-    // Load a font
-    let font_path: &Path = Path::new("./src/assets/fonts/MobileFont.ttf");
-    log::info!("path: {:?}", font_path);
-
-    let mut font = ttf_context.load_font(font_path, 128)?;
-    font.set_style(sdl2::ttf::FontStyle::NORMAL);
-
-    let window = video_subsystem
-        .window("rust-sdl2 demo", SCREEN_WIDTH, SCREEN_HEIGHT)
-        .position_centered()
-        .opengl()
-        .build()
-        .unwrap();
-
-    let mut canvas: Canvas<Window> = window.into_canvas().present_vsync().build().unwrap();
-
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    // fills the canvas with the color we set in `set_draw_color`.
-    canvas.clear();
+    let sdl_context = video_context.sdl_context;
+    let mut canvas = video_context.canvas;
 
     let mut event_pump = sdl_context.event_pump()?;
     let mut i = 0;
@@ -84,6 +60,13 @@ pub fn main() -> Result<(), String> {
 
         // clear the stage
         canvas.clear();
+
+        // Load a font
+        let font_path: &Path = Path::new("./src/assets/fonts/MobileFont.ttf");
+        log::info!("path: {:?}", font_path);
+
+        let mut font = video_context.ttf_context.load_font(font_path, 128)?;
+        font.set_style(sdl2::ttf::FontStyle::NORMAL);
 
         // render a surface, and convert it to a texture bound to the canvas
         let title: String = format!("Hello Rust! FPS: {}", fps);
