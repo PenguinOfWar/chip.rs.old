@@ -5,25 +5,28 @@
 // https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/ttf-demo.rs
 // https://github.com/redox-os/rusttype/blob/master/dev/examples/gpu_cache.rs
 
+pub mod drivers;
 pub mod logger;
-pub mod chip8;
 
 use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
 
-use sdl2;
 use sdl2::event::Event;
 use sdl2::gfx::framerate::FPSManager;
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
-use sdl2::render::{Canvas, TextureQuery};
-use sdl2::ttf;
-use sdl2::video::Window;
+use sdl2::render::TextureQuery;
+
+use drivers::cpu::Cpu;
+use drivers::cpu::CpuContext;
+use drivers::video::Video;
+use drivers::video::VideoContext;
 
 static SCREEN_WIDTH: u32 = 800;
 static SCREEN_HEIGHT: u32 = 600;
+static PADDING: u32 = 64;
 
 // macro rules seem cool
 macro_rules! rect(
@@ -33,56 +36,55 @@ macro_rules! rect(
 );
 
 pub fn main() -> Result<(), String> {
-    logger::main().expect("panic bootstrapping");
+    logger::main().expect("panic bootstrapping logger");
+
+    // configure cpu
+
+    let mut cpu: Cpu = CpuContext::new();
+    log::info!("CPU: {:?}", cpu);
+
+    // start the cpu
+    cpu = cpu.set_running(true);
+
+    log::info!("CPU: {:?}", cpu);
 
     // configure video
+    let video_context: Video = VideoContext::new(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
+    let sdl_context = video_context.sdl_context;
+    let mut canvas = video_context.canvas;
 
-    // ttf context
-
-    let ttf_context = ttf::init().map_err(|e| e.to_string())?;
-
-    // Load a font
-    let font_path: &Path = Path::new("./src/assets/fonts/MobileFont.ttf");
-    log::info!("path: {:?}", font_path);
-
-    let mut font = ttf_context.load_font(font_path, 128)?;
-    font.set_style(sdl2::ttf::FontStyle::NORMAL);
-
-    let window = video_subsystem
-        .window("rust-sdl2 demo", SCREEN_WIDTH, SCREEN_HEIGHT)
-        .position_centered()
-        .opengl()
-        .build()
-        .unwrap();
-
-    let mut canvas: Canvas<Window> = window.into_canvas().present_vsync().build().unwrap();
-
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    // fills the canvas with the color we set in `set_draw_color`.
-    canvas.clear();
-
+    // pump it real good
     let mut event_pump = sdl_context.event_pump()?;
     let mut i = 0;
 
+    // Load a font
+    let font_path: &Path = Path::new("./src/assets/fonts/MobileFont.ttf");
+
+    let mut font = video_context.ttf_context.load_font(font_path, 128)?;
+    font.set_style(sdl2::ttf::FontStyle::NORMAL);
+
     // track frames
     let mut fpsmanager: FPSManager = FPSManager::new();
-    fpsmanager.set_framerate(60u32).expect("Framerate panic");
+    fpsmanager
+        .set_framerate(drivers::video::FRAMERATE)
+        .expect("Framerate panic");
 
     'running: loop {
         // log fps
         let fps: i32 = fpsmanager.get_framerate();
-        log::info!("FPS: {:?}", fps);
 
         // change the colour so we know it's working
         i = (i + 1) % 255;
         canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
 
+        // clear the stage
+        canvas.clear();
+
         // render a surface, and convert it to a texture bound to the canvas
+        let title: String = format!("Hello Rust! FPS: {}", fps);
         let surface = font
-            .render("Hello Rust!")
+            .render(title.as_str())
             .blended(Color::RGBA(255, 0, 0, 255))
             .map_err(|e| e.to_string())?;
 
@@ -91,20 +93,16 @@ pub fn main() -> Result<(), String> {
             .create_texture_from_surface(&surface)
             .map_err(|e| e.to_string())?;
 
-        // clear the stage
-        canvas.clear();
-
         // texture query
 
         let TextureQuery { width, height, .. } = texture.query();
 
         // If the example text is too big for the screen, downscale it (and center irregardless)
-        let padding = 64;
         let target = get_centered_rect(
             width,
             height,
-            SCREEN_WIDTH - padding,
-            SCREEN_HEIGHT - padding,
+            SCREEN_WIDTH - PADDING,
+            SCREEN_HEIGHT - PADDING,
         );
 
         // change the color of our drawing with a gold-color ...
@@ -112,19 +110,18 @@ pub fn main() -> Result<(), String> {
 
         // draw a rectangle
         let rectangle: Rect =
-            get_centered_rect(400, 200, SCREEN_WIDTH - padding, SCREEN_HEIGHT - padding);
-        log::info!("rect: {:?}", rectangle);
+            get_centered_rect(400, 200, SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING);
         canvas.fill_rect(rectangle).unwrap();
 
         // change color
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         let square: Rect =
-            get_centered_rect(250, 250, SCREEN_WIDTH - padding, SCREEN_HEIGHT - padding);
+            get_centered_rect(250, 250, SCREEN_WIDTH - PADDING, SCREEN_HEIGHT - PADDING);
         canvas.fill_rect(square).unwrap();
 
-        log::info!("Target: {:?}", target);
-
         canvas.copy(&texture, None, Some(target))?;
+
+        cpu = cpu.tick().expect("Panic while ticking CPU");
 
         for event in event_pump.poll_iter() {
             match event {
@@ -133,38 +130,55 @@ pub fn main() -> Result<(), String> {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => {
+                    log::info!("Closing");
                     break 'running;
                 }
-                _ => {}
+                _ => {
+                    log::info!("General input");
+                }
             }
         }
-        // Present the layers
-        // However the canvas has not been updated to the window yet,
-        // everything has been processed to an internal buffer,
-        // but if we want our buffer to be displayed on the window,
-        // we need to call `present`. We need to call this everytime
-        // we want to render a new frame on the window.
-        canvas.present();
+
+        // There is no real benefit to this check yet other than debugging
+        if !cpu.working {
+            // Present the layers if the CPU has finished doing it's thang
+            // However the canvas has not been updated to the window yet,
+            // everything has been processed to an internal buffer,
+            // but if we want our buffer to be displayed on the window,
+            // we need to call `present`. We need to call this everytime
+            // we want to render a new frame on the window.
+            canvas.present();
+        } else {
+            log::info!("Waiting on CPU");
+        }
+
+        // time between frames
+        let frame_time: u64 = 1000 / fps as u64;
 
         // sleep until the next frame
-        sleep(Duration::from_millis(1000 / 60));
+        sleep(Duration::from_millis(frame_time));
     }
 
     Ok(())
 }
 
 // Scale fonts to a reasonable size when they're too big (though they might look less smooth)
-fn get_centered_rect(rect_width: u32, rect_height: u32, cons_width: u32, cons_height: u32) -> Rect {
+pub fn get_centered_rect(
+    rect_width: u32,
+    rect_height: u32,
+    cons_width: u32,
+    cons_height: u32,
+) -> Rect {
     let wr = rect_width as f32 / cons_width as f32;
     let hr = rect_height as f32 / cons_height as f32;
 
     let (w, h) = if wr > 1f32 || hr > 1f32 {
         if wr > hr {
-            println!("Scaling down! The text will look worse!");
+            // println!("Scaling down! The text will look worse!");
             let h = (rect_height as f32 / wr) as i32;
             (cons_width as i32, h)
         } else {
-            println!("Scaling down! The text will look worse!");
+            // println!("Scaling down! The text will look worse!");
             let w = (rect_width as f32 / hr) as i32;
             (w, cons_height as i32)
         }
@@ -175,4 +189,34 @@ fn get_centered_rect(rect_width: u32, rect_height: u32, cons_width: u32, cons_he
     let cx = (SCREEN_WIDTH as i32 - w) / 2;
     let cy = (SCREEN_HEIGHT as i32 - h) / 2;
     rect!(cx, cy, w, h)
+}
+
+pub fn games() -> Vec<&'static str> {
+    let games: Vec<&str> = vec![
+        "Invaders", "Brix", "Tetris", "Pong", "UFO", "IBM", "Missile", "Tank", "Maze",
+    ];
+    return games;
+}
+
+// tests below
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_gets_centered_rect() {
+        let test_width: u32 = 400;
+        let test_height: u32 = 200;
+
+        let rectangle: super::Rect = super::get_centered_rect(
+            test_width,
+            test_height,
+            super::SCREEN_WIDTH - super::PADDING,
+            super::SCREEN_HEIGHT - super::PADDING,
+        );
+
+        assert_eq!(rectangle.x, 200);
+        assert_eq!(rectangle.y, 200);
+        assert_eq!(rectangle.w, test_width as i32);
+        assert_eq!(rectangle.h, test_height as i32);
+    }
 }
