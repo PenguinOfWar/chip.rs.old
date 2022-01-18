@@ -13,6 +13,6 @@ chrono = "0.4.19"
 
 # this is a cool way of subscribing to subdeps
 [dependencies.sdl2]
-version = "0.34.4"
+version = "0.35.1"
 default-features = false
 features = ["gfx", "ttf"]
