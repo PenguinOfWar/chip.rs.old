@@ -5,8 +5,8 @@
 // https://github.com/Rust-SDL2/rust-sdl2/blob/master/examples/ttf-demo.rs
 // https://github.com/redox-os/rusttype/blob/master/dev/examples/gpu_cache.rs
 
-pub mod logger;
 pub mod chip8;
+pub mod logger;
 
 use std::path::Path;
 use std::thread::sleep;
